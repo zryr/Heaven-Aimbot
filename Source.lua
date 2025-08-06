@@ -27,7 +27,7 @@ local Config = {
     aimbotEnabled = false, smoothAimEnabled = true, targetPart = "HumanoidRootPart", fovRadius = 120, smoothness = 0.15,
     wallCheck = false, teamCheck = false, whitelist = {},
     espLinesEnabled = true, espChamsEnabled = false,
-    hitboxModEnabled = false, hitboxSize = 4,
+    hitboxModEnabled = false, hitboxSize = 4, hitboxTransparency = 0.5,
     accentColor = Color3.fromRGB(135, 206, 235), onColor = Color3.fromRGB(80, 200, 130), offColor = Color3.fromRGB(220, 70, 70),
     bgColor = Color3.fromRGB(28, 29, 36), midBgColor = Color3.fromRGB(40, 42, 52), font = Enum.Font.GothamSemibold,
 }
@@ -78,13 +78,13 @@ function MainGUI:Create()
     
     local gui = Instance.new("ScreenGui"); gui.Name = "MainGUI_Heaven"; gui.ResetOnSpawn = false
     
-    local mainFrame = Instance.new("Frame", gui); mainFrame.Size = UDim2.new(0, 280, 0, 420); mainFrame.Position = UDim2.fromScale(0.15, 0.5); mainFrame.AnchorPoint = Vector2.new(0, 0.5); mainFrame.BackgroundColor3 = Config.bgColor; mainFrame.BorderSizePixel = 0; mainFrame.ClipsDescendants = true; mainFrame.Draggable = false
+    local mainFrame = Instance.new("Frame", gui); mainFrame.Size = UDim2.new(0, 280, 0, 420); mainFrame.Position = UDim2.fromScale(0.15, 0.5); mainFrame.AnchorPoint = Vector2.new(0, 0.5); mainFrame.BackgroundColor3 = Config.bgColor; mainFrame.BorderSizePixel = 0; mainFrame.ClipsDescendants = false; mainFrame.Draggable = false
     local corner = Instance.new("UICorner", mainFrame); corner.CornerRadius = UDim.new(0, 8)
     local stroke = Instance.new("UIStroke", mainFrame); stroke.Color = Config.accentColor; stroke.Thickness = 1.5
     
     --// Rebuilt UI Structure for reliable dragging
     local dragFrame = Instance.new("Frame", mainFrame)
-    dragFrame.Size = UDim2.new(1, 0, 0, 12); dragFrame.Position = UDim2.new(0,0,0,0); dragFrame.BackgroundColor3 = Config.accentColor; dragFrame.BackgroundTransparency = 1; dragFrame.ZIndex = 10
+    dragFrame.Size = UDim2.new(1, 0, 0, 12); dragFrame.Position = UDim2.new(0,0,0,-12); dragFrame.BackgroundColor3 = Config.accentColor; dragFrame.BackgroundTransparency = 1; dragFrame.ZIndex = 10
     dragFrame.Active = true; dragFrame.Draggable = true
     dragFrame.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then TweenService:Create(dragFrame, TweenInfo.new(0.2), {BackgroundTransparency = 0.6}):Play() end end)
     dragFrame.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then TweenService:Create(dragFrame, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play() end end)
@@ -120,8 +120,15 @@ function MainGUI:Create()
     updateMethods.teamCheck=createToggle("Team Check","Ignores teammates",10,function()Config.teamCheck=not Config.teamCheck;updateMethods.teamCheck(Config.teamCheck);saveSettings()end)
     updateMethods.whitelistInput=createInput("Whitelist (e.g. user1 user2)",11,function()local t=updateMethods.whitelistInput.Text;Config.whitelist={};for n in string.gmatch(t,"%S+")do table.insert(Config.whitelist,n:lower())end;saveSettings()end)
     createDivider(12)
-    updateMethods.hitboxMod=createToggle("Modify Hitboxes","Increases player hitbox size",13,function()Config.hitboxModEnabled=not Config.hitboxModEnabled;updateMethods.hitboxMod(Config.hitboxModEnabled);updateMethods.hitboxSliderFrame.Visible=Config.hitboxModEnabled;saveSettings()end)
+    updateMethods.hitboxMod=createToggle("Modify Hitboxes","Increases player hitbox size",13,function()
+        Config.hitboxModEnabled=not Config.hitboxModEnabled
+        updateMethods.hitboxMod(Config.hitboxModEnabled)
+        updateMethods.hitboxSliderFrame.Visible=Config.hitboxModEnabled
+        updateMethods.hitboxTransSliderFrame.Visible=Config.hitboxModEnabled
+        saveSettings()
+    end)
     updateMethods.hitboxSlider,updateMethods.hitboxSliderFrame=createSliderWithInput("Hitbox Size",2,10,14,function()return Config.hitboxSize end,function(v)Config.hitboxSize=v end)
+    updateMethods.hitboxTransSlider,updateMethods.hitboxTransSliderFrame=createSliderWithInput("Hitbox Transparency",0,1,15,function()return Config.hitboxTransparency end,function(v)Config.hitboxTransparency=v end)
 
     local isMinimized=false;minimizeBtn.MouseButton1Click:Connect(function()isMinimized=not isMinimized;scrollingFrame.Visible=not isMinimized;local s=isMinimized and UDim2.new(0,280,0,48)or UDim2.new(0,280,0,420);TweenService:Create(mainFrame,TweenInfo.new(0.2),{Size=s}):Play()end)
 
@@ -131,7 +138,7 @@ end
 function MainGUI:Update(methods)
     methods.aimbot(Config.aimbotEnabled);methods.smoothAim(Config.smoothAimEnabled);methods.targetPart(Config.targetPart=="HumanoidRootPart"and"Torso"or Config.targetPart);methods.fovSlider()
     methods.espLines(Config.espLinesEnabled);methods.espChams(Config.espChamsEnabled);methods.wallCheck(Config.wallCheck);methods.teamCheck(Config.teamCheck)
-    methods.whitelistInput.Text=table.concat(Config.whitelist," ");methods.hitboxMod(Config.hitboxModEnabled);methods.hitboxSlider();methods.hitboxSliderFrame.Visible=Config.hitboxModEnabled
+    methods.whitelistInput.Text=table.concat(Config.whitelist," ");methods.hitboxMod(Config.hitboxModEnabled);methods.hitboxSlider();methods.hitboxSliderFrame.Visible=Config.hitboxModEnabled;methods.hitboxTransSlider();methods.hitboxTransSliderFrame.Visible=Config.hitboxModEnabled
 end
 
 --================================================================================
@@ -139,7 +146,16 @@ end
 --================================================================================
 local CoreLogic={};local FovCircle=Drawing.new("Circle");FovCircle.Visible=false;FovCircle.Thickness=1.5;FovCircle.Color=Config.accentColor;FovCircle.NumSides=64;FovCircle.Filled=false
 local espLines = {}
-function CoreLogic.createCham(p)if espHighlights[p]then return end;local c=p.Character;if not c then return end;local h=Instance.new("Highlight",c);h.FillColor=Config.accentColor;h.FillTransparency=0.6;h.OutlineTransparency=1;h.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop;espHighlights[p]=h end
+function CoreLogic.createCham(p)
+    if espHighlights[p] then return end
+    local c = p.Character
+    if not c then return end
+    local h = Instance.new("Highlight", c)
+    h.FillTransparency = 0.6
+    h.OutlineTransparency = 1
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    espHighlights[p] = h
+end
 function CoreLogic.removeCham(p)if espHighlights[p]then espHighlights[p]:Destroy();espHighlights[p]=nil end end
 function CoreLogic.applyHitboxMod(p)
     local c = p.Character
@@ -156,7 +172,7 @@ function CoreLogic.applyHitboxMod(p)
         end
         pcall(function()
             r.Size = Vector3.new(Config.hitboxSize, Config.hitboxSize, Config.hitboxSize)
-            r.Transparency = 0.5
+            r.Transparency = Config.hitboxTransparency
             r.Material = Enum.Material.Neon
             r.CanCollide = false
         end)
@@ -181,32 +197,70 @@ function CoreLogic.isAlive(p)return p and p.Character and p.Character:FindFirstC
 function CoreLogic.isVisible(p)local o=Camera.CFrame.Position;local pa=RaycastParams.new();pa.FilterType=Enum.RaycastFilterType.Exclude;pa.FilterDescendantsInstances={LocalPlayer.Character};local r=workspace:Raycast(o,p.Position-o,pa);return not r or r.Instance:IsDescendantOf(p.Parent)end
 function CoreLogic.isSameTeam(p)return LocalPlayer.Team and p.Team and LocalPlayer.Team==p.Team end
 function CoreLogic.isWhitelisted(p)for _,n in ipairs(Config.whitelist)do if p.Name:lower()==n then return true end end;return false end
-function CoreLogic.getClosestTarget()
-    local bestTarget, nearestDistance = nil, Config.fovRadius
-    local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+function CoreLogic.getClosestTarget()local b,d=nil,Config.fovRadius;local c=Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2);for _,p in pairs(Players:GetPlayers())do if p~=LocalPlayer and CoreLogic.isAlive(p)and not(Config.teamCheck and CoreLogic.isSameTeam(p))and not CoreLogic.isWhitelisted(p)then local t=p.Character:FindFirstChild(Config.targetPart);if t then local s,v=Camera:WorldToViewportPoint(t.Position);if v then local m=(Vector2.new(s.X,s.Y)-c).Magnitude;if m<d and(not Config.wallCheck or CoreLogic.isVisible(t))then b=t;d=m end end end end end;return b end
+function CoreLogic.updateVisuals()
+    local i, c = 1, Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local alive = CoreLogic.isAlive(p)
+            local isTeammate = CoreLogic.isSameTeam(p)
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and CoreLogic.isAlive(player) and not (Config.teamCheck and CoreLogic.isSameTeam(player)) and not CoreLogic.isWhitelisted(player) then
-            local character = player.Character
-            local targetPart = character and character:FindFirstChild(Config.targetPart)
+            if alive and not CoreLogic.isWhitelisted(p) then
+                -- Chams
+                if Config.espChamsEnabled then
+                    if Config.teamCheck and isTeammate then
+                        CoreLogic.createCham(p)
+                        if espHighlights[p] then espHighlights[p].FillColor = Color3.fromRGB(0, 255, 0) end
+                    else
+                        CoreLogic.createCham(p)
+                        if espHighlights[p] then espHighlights[p].FillColor = Config.accentColor end
+                    end
+                else
+                    CoreLogic.removeCham(p)
+                end
 
-            if targetPart then
-                local screenPosition, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen then
-                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - viewportCenter).Magnitude
-                    if distance < nearestDistance then
-                        if not Config.wallCheck or CoreLogic.isVisible(targetPart) then
-                            bestTarget = targetPart
-                            nearestDistance = distance
+                -- Lines
+                if Config.espLinesEnabled then
+                    local r = p.Character:FindFirstChild("HumanoidRootPart")
+                    if r then
+                        local s, v = Camera:WorldToViewportPoint(r.Position)
+                        if v then
+                            if not espLines[i] then
+                                espLines[i] = Drawing.new("Line")
+                                espLines[i].Thickness = 1.5
+                                espLines[i].Transparency = 0.5
+                            end
+                            local l = espLines[i]
+                            l.Visible = true
+                            l.From = c
+                            l.To = Vector2.new(s.X, s.Y)
+
+                            if Config.teamCheck and isTeammate then
+                                l.Color = Color3.fromRGB(0, 255, 0)
+                            else
+                                local d = (LocalPlayer.Character.HumanoidRootPart.Position - r.Position).Magnitude
+                                l.Color = Color3.fromHSV(0.3 - (d / 1000), 0.8, 1)
+                            end
+                            i = i + 1
                         end
                     end
                 end
+            else
+                CoreLogic.removeCham(p)
             end
         end
     end
-    return bestTarget
+    for j = i, #espLines do
+        if espLines[j] then
+            espLines[j].Visible = false
+        end
+    end
+    if not Config.espChamsEnabled then
+        for p, _ in pairs(espHighlights) do
+            CoreLogic.removeCham(p)
+        end
+    end
 end
-function CoreLogic.updateVisuals()local i,c=1,Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2);for _,p in pairs(Players:GetPlayers())do if p~=LocalPlayer then local alive=CoreLogic.isAlive(p);if Config.espChamsEnabled and alive and not(Config.teamCheck and CoreLogic.isSameTeam(p))and not CoreLogic.isWhitelisted(p)then CoreLogic.createCham(p)else CoreLogic.removeCham(p)end;if Config.espLinesEnabled and alive and not(Config.teamCheck and CoreLogic.isSameTeam(p))and not CoreLogic.isWhitelisted(p)then local r=p.Character:FindFirstChild("HumanoidRootPart");if r then local s,v=Camera:WorldToViewportPoint(r.Position);if v then if not espLines[i]then espLines[i]=Drawing.new("Line");espLines[i].Thickness=1.5;espLines[i].Transparency=0.5 end;local l=espLines[i];l.Visible=true;l.From=c;l.To=Vector2.new(s.X,s.Y);local d=(LocalPlayer.Character.HumanoidRootPart.Position-r.Position).Magnitude;l.Color=Color3.fromHSV(0.3-(d/1000),0.8,1);i=i+1 end end end end end;for j=i,#espLines do if espLines[j]then espLines[j].Visible=false end end;if not Config.espChamsEnabled then for p,_ in pairs(espHighlights)do CoreLogic.removeCham(p)end end end
 function CoreLogic.start()
     local aimTween
     RunService.RenderStepped:Connect(function()
