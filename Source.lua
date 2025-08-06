@@ -219,3 +219,13 @@ function CoreLogic.start()
 end
 
 --================================================================================
+--// Initialization
+--================================================================================
+loadSettings()
+showWelcomeScreen(function()
+    print("☁️ Heaven | Aimbot Initialized.")
+    local updateMethods = MainGUI:Create()
+    MainGUI:Update(updateMethods)
+    CoreLogic.start()
+    Players.PlayerRemoving:Connect(function(player)if originalHitboxData[player]then originalHitboxData[player]=nil end;if espHighlights[player]then espHighlights[player]=nil end end)
+end)
